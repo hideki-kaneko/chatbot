@@ -10,16 +10,19 @@ class DialogueListener(tweepy.StreamListener):
     """
     REPLY_PATTERN = r'(@[a-zA-Z0-9_]+\s)*(?P<text>.*)'
 
-    def __init__(self, twitter_api: tweepy.API, api=None):
+    def __init__(self, twitter_api: tweepy.API, hold_json: bool, api=None):
         """コンストラクタ。
 
         :param twitter_api: tweepy.API のインスタンス。
+        :param hold_json: 処理されていない JSON 形式で会話を保持するかどうか。
         :param api: 不明。
         """
         super(DialogueListener, self).__init__(api)
 
         self.twitter_api = twitter_api
         self.dialogues = []
+        self.hold_json = hold_json
+        self.dialogues_json = []
 
     def on_status(self, status):
         """Called when a new status arrives.
@@ -31,6 +34,11 @@ class DialogueListener(tweepy.StreamListener):
             # TODO: オリジナルツイートを取得する際の例外処理
             origin_tweet = self.twitter_api.get_status(
                 tweet['in_reply_to_status_id'])._json
+
+            # hold_json フラグが立っていればツイートの JSON データをそのまま
+            # 保存しておく
+            if self.hold_json:
+                self.dialogues_json.append((origin_tweet, tweet))
 
             # 改行文字の置換
             reply_text = tweet['text'].replace('\n', '。')
@@ -68,6 +76,8 @@ def main():
     parser.add_argument('auth_file', type=str,
                         help='pickle で直列化された OAuthHandler のパス')
     parser.add_argument('output', type=str, help='出力ファイルのパス')
+    parser.add_argument('--output-json', type=str, default=None,
+                        help='DEBUG')
 
     args = parser.parse_args()
 
@@ -75,7 +85,7 @@ def main():
     api = get_twitter_api_wrapper(args.auth_file)
 
     # リスナーとストリームの用意
-    listener = DialogueListener(api)
+    listener = DialogueListener(api, hold_json=bool(args.output_json))
     stream = tweepy.Stream(auth=api.auth, listener=listener)
 
     # 会話の収集
@@ -87,6 +97,12 @@ def main():
             pickle.dump(listener.dialogues, output_file)
             print('%d 組の会話を取得し、"%s" に保存しました。'
                   % (len(listener.dialogues), args.output))
+
+        if args.output_json:
+            with open(args.output_json, 'wb') as output_file:
+                pickle.dump(listener.dialogues_json, output_file)
+                print('[DEBUG] JSON 形式のデータを "%s" に保存しました。'
+                      % args.output_json)
 
 
 if __name__ == '__main__':
