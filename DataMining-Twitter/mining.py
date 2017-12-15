@@ -29,9 +29,12 @@ class DialogueListener(tweepy.StreamListener):
             origin_tweet = self.twitter_api.get_status(
                 tweet['in_reply_to_status_id'])._json
 
-            print('Origin: %s\nReply: %s'
-                  %(origin_tweet['text'], tweet['text']))
-            self.dialogues.append((origin_tweet['text'], tweet['text']))
+            # 改行文字の置換
+            reply_text = tweet['text'].replace('\n', '。')
+            origin_text = origin_tweet['text'].replace('\n', '。')
+
+            print('Origin: %s\nReply: %s' % (origin_text, reply_text))
+            self.dialogues.append((origin_text, reply_text))
 
 
 def get_twitter_api_wrapper(path: str) -> tweepy.API:
