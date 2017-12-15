@@ -1,5 +1,6 @@
 import argparse
 import pickle
+import re
 
 import tweepy
 
@@ -7,6 +8,8 @@ import tweepy
 class DialogueListener(tweepy.StreamListener):
     """会話を取得するための Listener。
     """
+    REPLY_PATTERN = r'(@[a-zA-Z0-9_]+\s)*(?P<text>.*)'
+
     def __init__(self, twitter_api: tweepy.API, api=None):
         """コンストラクタ。
 
@@ -32,6 +35,12 @@ class DialogueListener(tweepy.StreamListener):
             # 改行文字の置換
             reply_text = tweet['text'].replace('\n', '。')
             origin_text = origin_tweet['text'].replace('\n', '。')
+
+            # screen_id の除去
+            match = re.match(self.REPLY_PATTERN, origin_text)
+            origin_text = match.group('text')
+            match = re.match(self.REPLY_PATTERN, reply_text)
+            reply_text = match.group('text')
 
             print('Origin: %s\nReply: %s' % (origin_text, reply_text))
             self.dialogues.append((origin_text, reply_text))
