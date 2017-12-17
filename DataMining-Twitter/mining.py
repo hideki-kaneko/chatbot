@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle
 import re
 
@@ -80,6 +81,13 @@ def main():
                         help='DEBUG')
 
     args = parser.parse_args()
+
+    # 指定した出力ファイルのパスにすでにファイルが存在しているかどうかのチェック
+    # TODO: 例外を投げるのではなく、既存のファイルにデータを追加するようにしたい
+    if os.path.exists(args.output):
+        raise Exception('%s はすでに存在しています。' % args.output)
+    if args.output_json and os.path.exists(args.output_json):
+        raise Exception('%s はすでに存在しています。' % args.output_json)
 
     # TwitterAPI のラッパー
     api = get_twitter_api_wrapper(args.auth_file)
