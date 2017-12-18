@@ -73,17 +73,15 @@ class DialogueListener(tweepy.StreamListener):
                 self._dialogues.append((origin_text, reply_text))
 
 
-def get_twitter_api_wrapper(path: str) -> tweepy.API:
-    """pickle で直列化された OAuthHandler を取り出し、tweepy.API の
-    インスタンスを生成して返す。
+def load_object_from_pickle(path: str) -> object:
+    """pickle ファイルからオブジェクトを読み取る。
 
-    :param path: 直列化された OAuth ハンドラのパス。
-    :return: TwitterAPI のラッパー。
+    :param path: pickle ファイルのパス。
+    :return: pickle ファイルに格納されているオブジェクト。
     """
     with open(path, 'rb') as pickle_file:
-        auth = pickle.load(pickle_file)
-    api = tweepy.API(auth)
-    return api
+        obj = pickle.load(pickle_file)
+    return obj
 
 
 def main():
@@ -108,7 +106,8 @@ def main():
         raise Exception('%s はすでに存在しています。' % args.output_json)
 
     # TwitterAPI のラッパー
-    api = get_twitter_api_wrapper(args.auth_file)
+    auth = load_object_from_pickle(args.auth_file)
+    api = tweepy.API(auth)
 
     # リスナーとストリームの用意
     listener = DialogueListener(api, hold_json=bool(args.output_json))
