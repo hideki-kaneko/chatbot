@@ -28,11 +28,31 @@ class DialogueListener(tweepy.StreamListener):
 
     @property
     def dialogues(self):
+        # mining.py で生成したファイルであることを証明する
+        self._dialogues.append(('ほげほげ', 'ふがふが'))
         return self._dialogues
 
     @property
     def dialogues_json(self):
+        # mining.py で生成したファイルであることを証明する
+        self._dialogues_json.append(('ほげほげ', 'ふがふが'))
         return self._dialogues_json
+
+    @dialogues.setter
+    def dialogues(self, dialogues):
+        if dialogues[-1] == ('ほげほげ', 'ふがふが'):
+            self._dialogues = dialogues[:-1]
+        else:
+            raise Exception('指定した出力ファイルはこのツールで出力した'
+                            'ファイルではありません。')
+
+    @dialogues_json.setter
+    def dialogues_json(self, dialogues_json):
+        if dialogues_json[-1] == ('ほげほげ', 'ふがふが'):
+            self._dialogues_json = dialogues_json[:-1]
+        else:
+            raise Exception('指定した出力ファイル (JSON) はこのツールで'
+                            '出力したファイルではありません。')
 
     def on_status(self, status):
         """Called when a new status arrives.
@@ -98,13 +118,6 @@ def main():
 
     args = parser.parse_args()
 
-    # 指定した出力ファイルのパスにすでにファイルが存在しているかどうかのチェック
-    # TODO: 例外を投げるのではなく、既存のファイルにデータを追加するようにしたい
-    if os.path.exists(args.output):
-        raise Exception('%s はすでに存在しています。' % args.output)
-    if args.output_json and os.path.exists(args.output_json):
-        raise Exception('%s はすでに存在しています。' % args.output_json)
-
     # TwitterAPI のラッパー
     auth = load_object_from_pickle(args.auth_file)
     api = tweepy.API(auth)
@@ -113,15 +126,31 @@ def main():
     listener = DialogueListener(api, hold_json=bool(args.output_json))
     stream = tweepy.Stream(auth=api.auth, listener=listener)
 
+    # 指定した出力ファイルのパスにすでにファイルが存在している場合には、
+    # 既存のファイルにデータを追加する
+    # ※  通常の出力と json の出力ファイルと整合性が取れているかどうかの確認は
+    #    していない
+    if os.path.exists(args.output):
+        existing_dialogues = load_object_from_pickle(args.output)
+        listener.dialogues = existing_dialogues
+    if args.output_json and os.path.exists(args.output_json):
+        existing_dialogues_json = load_object_from_pickle(args.output_json)
+        listener.dialogues_json = existing_dialogues_json
+
     # 会話の収集
     try:
         stream.userstream()
     except KeyboardInterrupt:
         print('\nKeyboardInterrupt.')
+        if existing_dialogues:
+            data_got_num = len(listener.dialogues) - len(existing_dialogues)
+        else:
+            data_got_num = len(listener.dialogues) - 1
+
         with open(args.output, 'wb') as output_file:
             pickle.dump(listener.dialogues, output_file)
             print('%d 組の会話を取得し、"%s" に保存しました。'
-                  % (len(listener.dialogues), args.output))
+                  % (data_got_num, args.output))
 
         if args.output_json:
             with open(args.output_json, 'wb') as output_file:
