@@ -22,9 +22,17 @@ class DialogueListener(tweepy.StreamListener):
         super(DialogueListener, self).__init__(api)
 
         self.twitter_api = twitter_api
-        self.dialogues = []
+        self._dialogues = []
         self.hold_json = hold_json
-        self.dialogues_json = []
+        self._dialogues_json = []
+
+    @property
+    def dialogues(self):
+        return self._dialogues
+
+    @property
+    def dialogues_json(self):
+        return self._dialogues_json
 
     def on_status(self, status):
         """Called when a new status arrives.
@@ -40,7 +48,7 @@ class DialogueListener(tweepy.StreamListener):
             # hold_json フラグが立っていればツイートの JSON データをそのまま
             # 保存しておく
             if self.hold_json:
-                self.dialogues_json.append((origin_tweet, tweet))
+                self._dialogues_json.append((origin_tweet, tweet))
 
             # 改行文字の置換
             reply_text = tweet['text'].replace('\n', '。')
@@ -60,9 +68,9 @@ class DialogueListener(tweepy.StreamListener):
             # 空白のみからなる文でないなら出力に追加する
             if not (re.match(r'\s*$', origin_text) or
                     re.match(r'\s*$', reply_text)):
-                del self.dialogues_json[-1]
+                del self._dialogues_json[-1]
                 print('Origin: %s\nReply: %s' % (origin_text, reply_text))
-                self.dialogues.append((origin_text, reply_text))
+                self._dialogues.append((origin_text, reply_text))
 
 
 def get_twitter_api_wrapper(path: str) -> tweepy.API:
