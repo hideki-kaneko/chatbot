@@ -10,6 +10,7 @@ class DialogueListener(tweepy.StreamListener):
     """会話を取得するための Listener。
     """
     REPLY_PATTERN = r'(@[a-zA-Z0-9_]+\s)*(?P<text>.*)'
+    URL_PATTERN = r'https?://[\w/:%#\$&\?\.=\+\-]+'
 
     def __init__(self, twitter_api: tweepy.API, hold_json: bool, api=None):
         """コンストラクタ。
@@ -51,8 +52,17 @@ class DialogueListener(tweepy.StreamListener):
             match = re.match(self.REPLY_PATTERN, reply_text)
             reply_text = match.group('text')
 
-            print('Origin: %s\nReply: %s' % (origin_text, reply_text))
-            self.dialogues.append((origin_text, reply_text))
+            # URL の除去
+            rex = re.compile(self.URL_PATTERN)
+            origin_text = rex.sub('', origin_text)
+            reply_text = rex.sub('', reply_text)
+
+            # 空白のみからなる文でないなら出力に追加する
+            if not (re.match(r'\s*$', origin_text) or
+                    re.match(r'\s*$', reply_text)):
+                del self.dialogues_json[-1]
+                print('Origin: %s\nReply: %s' % (origin_text, reply_text))
+                self.dialogues.append((origin_text, reply_text))
 
 
 def get_twitter_api_wrapper(path: str) -> tweepy.API:
