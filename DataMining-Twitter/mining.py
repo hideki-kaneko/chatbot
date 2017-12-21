@@ -1,4 +1,4 @@
-""" this is a program to collect chat data on twitter 
+""" this is a program to collect chat data on twitter
 """
 import argparse
 import os
