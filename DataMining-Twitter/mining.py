@@ -1,7 +1,6 @@
 """ this is a program to collect chat data on twitter
 """
 import argparse
-import os
 import pickle
 import re
 
@@ -14,24 +13,24 @@ class DialogueListener(tweepy.StreamListener):
     REPLY_PATTERN = r'(@[a-zA-Z0-9_]+\s)*(?P<text>.*)'
     URL_PATTERN = r'https?://[\w/:%#\$&\?\.=\+\-]+'
 
-    def __init__(self, twitter_api: tweepy.API, api=None):
+    def __init__(self, twitter_api: tweepy.API, output_path: str, api=None):
         """コンストラクタ。
 
         :param twitter_api: tweepy.API のインスタンス。
+        :param output_path: 出力パス。
         :param api: 不明。
         """
         super(DialogueListener, self).__init__(api)
 
         self.twitter_api = twitter_api
-        self.dialogues = []
+        self.output_file = open(output_path, 'a')
 
     def on_status(self, status):
         """Called when a new status arrives.
         """
         tweet = status._json
         if tweet['in_reply_to_status_id']:
-            # リプライである場合、オリジナルツイートを取得し、
-            # (オリジナルツイート, リプライ) の組を会話として保存する
+            # リプライである場合、オリジナルツイートを取得する
             # TODO: オリジナルツイートを取得する際の例外処理
             origin_tweet = self.twitter_api.get_status(
                 tweet['in_reply_to_status_id'])._json
@@ -54,7 +53,9 @@ class DialogueListener(tweepy.StreamListener):
             # 空白のみからなる文でないなら出力に追加する
             if not (re.match(r'\s*$', origin_text) or
                     re.match(r'\s*$', reply_text)):
-                self.dialogues.append((origin_text, reply_text))
+                self.output_file.write(
+                    'A: %s\nB: %s\n' % (origin_text, reply_text))
+                self.output_file.flush()
 
 
 def load_object_from_pickle(path: str) -> object:
@@ -103,21 +104,11 @@ def main():
     api = tweepy.API(auth)
 
     # リスナーとストリームの用意
-    listener = DialogueListener(api)
+    listener = DialogueListener(api, output_path=args.output)
     stream = tweepy.Stream(auth=api.auth, listener=listener)
 
-    # 指定した出力ファイルのパスにすでにファイルが存在している場合には、
-    # 既存のファイルにデータを追加する
-    if os.path.exists(args.output):
-        existing_dialogues = load_object_from_pickle(args.output)
-        listener.dialogues = existing_dialogues
-
     # 会話の収集
-    try:
-        stream.userstream()
-    except KeyboardInterrupt:
-        with open(args.output, 'wb') as output_file:
-            pickle.dump(listener.dialogues, output_file)
+    stream.userstream()
 
 
 if __name__ == '__main__':
