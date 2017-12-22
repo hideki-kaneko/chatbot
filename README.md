@@ -22,10 +22,10 @@ $ python
 
 \>\>\> auth.set\_access\_token(ACCESS\_TOKEN, ACCESS\_TOKEN\_SECRET)
 
-\>\>\> f = open('hoge.pickle', 'wb')
+\>\>\> f = open('auth.pickle', 'wb')
 
 \>\>\> pickle.dump(auth, f)
 
 \>\>\> f.close()
 
-(カレントディレクトリで OAuthHandler の pickle ファイル 'hoge.pickle' を作成)
+(カレントディレクトリで OAuthHandler の pickle ファイル 'auth.pickle' を作成)
