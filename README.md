@@ -12,6 +12,16 @@ $ python mining.py --help
 
 pickle 化された tweepy.OAuthHandler が必要ですが、以下の手順で作成できます。(apps.twitter.com から各種キーを取得してください。)
 
+1. 対話形式で作成
+
+引数に --set-keysを指定すると、対話形式でpickle化されたtweepy.OAuthHandlerを作成できます（カレントディレクトリにauth.pickleが保存されます）。
+
+実行例: キーを作成してから実行
+
+$ python mining.py auth.pickle out.pickle --set-keys
+
+2. 自分で作成
+
 $ python
 
 \>\>\> import pickle

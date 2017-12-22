@@ -105,6 +105,20 @@ def load_object_from_pickle(path: str) -> object:
         obj = pickle.load(pickle_file)
     return obj
 
+def create_auth_pickle():
+    print("https://apps.twitter.com/ で取得したキーを入力してください")
+    CONSUMER_KEY = str(input("CONSUMER KEY:"))
+    CONSUMER_SECRET = str(input("CONSUMER SECRET:"))
+    ACCESS_TOKEN = str(input("ACCESS TOKEN:"))
+    ACCESS_TOKEN_SECRET = str(input("ACCESS TOKEN SECRET:"))
+    try:
+        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+        with open('auth.pickle', 'wb') as f:
+            pickle.dump(auth, f)
+        print("auth.pickle を保存しました")
+    except :
+        print("エラー")
 
 def main():
     """main 関数。
@@ -117,8 +131,12 @@ def main():
     parser.add_argument('output', type=str, help='出力ファイルのパス')
     parser.add_argument('--output-json', type=str, default=None,
                         help='DEBUG')
+    parser.add_argument('--set-keys', action='store_true', help='対話形式で認証用ファイルを生成します')
 
     args = parser.parse_args()
+
+    if args.set_keys:
+        create_auth_pickle()
 
     # TwitterAPI のラッパー
     auth = load_object_from_pickle(args.auth_file)
