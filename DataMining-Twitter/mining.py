@@ -1,8 +1,10 @@
 """ this is a program to collect chat data on twitter
 """
 import argparse
+import logging
 import pickle
 import re
+import time
 from urllib3.exceptions import ProtocolError
 
 import tweepy
@@ -39,7 +41,13 @@ class DialogueListener(tweepy.StreamListener):
             try:
                 origin_tweet = self.twitter_api.get_status(
                     tweet['in_reply_to_status_id'])._json
-            except Exception:
+            except Exception as ex:
+                if ex.api_code == 179:
+                    # 鍵アカウントへのリプライの場合
+                    pass
+                else:
+                    logging.warning('[on_status] Exception raised. msg: %s'
+                                    % ex.reason)
                 # プログラムの中止を避けるため
                 return
 
@@ -70,6 +78,8 @@ class DialogueListener(tweepy.StreamListener):
                     self.output_file.flush()
 
     def on_error(self, status_code):
+        logging.error('[on_error] Error occurred. '
+                      'Status code: %s' % status_code)
         # プログラムの中止を避けるため
         return True
 
@@ -109,8 +119,14 @@ def main():
                         help='pickle で直列化された OAuthHandler のパス')
     parser.add_argument('output', type=str, help='出力ファイルのパス')
     parser.add_argument('--set-keys', action='store_true', help='対話形式で認証用ファイルを生成します')
+    parser.add_argument('--log', type=str, default='log',
+                        help='ログの出力先\nデフォルトは ./log に出力する')
 
     args = parser.parse_args()
+
+    # logging の設定
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        filename=args.log, level=logging.WARNING)
 
     if args.set_keys:
         create_auth_pickle()
@@ -127,10 +143,14 @@ def main():
     while True:
         try:
             stream.sample(languages=['ja'])
-        except ProtocolError:
+        except ProtocolError as ex:
+            logging.warning('[main] ProtocolError raised. msg: %s' % str(ex))
             # DialogueListener.on_status 内のオリジナルツイートを取得する処理が
             # タイムアウトした場合に発生することを確認した
-            pass
+        except Exception as ex:
+            logging.warning('[main] Exception raised. msg: %s' % str(ex))
+            logging.warning('[main] time.sleep(120)')
+            time.sleep(120)
 
 
 if __name__ == '__main__':
