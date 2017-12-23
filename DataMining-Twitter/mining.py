@@ -3,6 +3,7 @@
 import argparse
 import pickle
 import re
+from urllib3.exceptions import ProtocolError
 
 import tweepy
 
@@ -31,9 +32,12 @@ class DialogueListener(tweepy.StreamListener):
         tweet = status._json
         if tweet['in_reply_to_status_id']:
             # リプライである場合、オリジナルツイートを取得する
-            # TODO: オリジナルツイートを取得する際の例外処理
-            origin_tweet = self.twitter_api.get_status(
-                tweet['in_reply_to_status_id'])._json
+            try:
+                origin_tweet = self.twitter_api.get_status(
+                    tweet['in_reply_to_status_id'])._json
+            except Exception:
+                # プログラムの中止を避けるため
+                return
 
             # 改行文字の置換
             reply_text = tweet['text'].replace('\n', '。')
@@ -56,6 +60,10 @@ class DialogueListener(tweepy.StreamListener):
                 self.output_file.write(
                     'A: %s\nB: %s\n' % (origin_text, reply_text))
                 self.output_file.flush()
+
+    def on_error(self, status_code):
+        # プログラムの中止を避けるため
+        return True
 
 
 def load_object_from_pickle(path: str) -> object:
@@ -108,7 +116,13 @@ def main():
     stream = tweepy.Stream(auth=api.auth, listener=listener)
 
     # 会話の収集
-    stream.sample(languages=['ja'])
+    while True:
+        try:
+            stream.sample(languages=['ja'])
+        except ProtocolError:
+            # DialogueListener.on_status 内のオリジナルツイートを取得する処理が
+            # タイムアウトした場合に発生することを確認した
+            pass
 
 
 if __name__ == '__main__':
