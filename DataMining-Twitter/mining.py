@@ -13,6 +13,8 @@ class DialogueListener(tweepy.StreamListener):
     """
     REPLY_PATTERN = r'(@[a-zA-Z0-9_]+\s)*(?P<text>.*)'
     URL_PATTERN = r'https?://[\w/:%#\$&\?\.=\+\-]+'
+    # 一回の出力で書き込む会話の数
+    BUF_MAX = 30
 
     def __init__(self, twitter_api: tweepy.API, output_path: str, api=None):
         """コンストラクタ。
@@ -25,6 +27,8 @@ class DialogueListener(tweepy.StreamListener):
 
         self.twitter_api = twitter_api
         self.output_file = open(output_path, 'a')
+        self.tweet_counter = 0
+        self.buf = ''
 
     def on_status(self, status):
         """Called when a new status arrives.
@@ -57,9 +61,13 @@ class DialogueListener(tweepy.StreamListener):
             # 空白のみからなる文でないなら出力に追加する
             if not (re.match(r'\s*$', origin_text) or
                     re.match(r'\s*$', reply_text)):
-                self.output_file.write(
-                    'A: %s\nB: %s\n' % (origin_text, reply_text))
-                self.output_file.flush()
+                self.buf += 'A: %s\nB: %s\n' % (origin_text, reply_text)
+                self.tweet_counter += 1
+                if self.tweet_counter >= self.BUF_MAX:
+                    self.output_file.write(self.buf)
+                    self.tweet_counter = 0
+                    self.buf = ''
+                    self.output_file.flush()
 
     def on_error(self, status_code):
         # プログラムの中止を避けるため
