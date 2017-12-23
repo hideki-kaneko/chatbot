@@ -108,7 +108,7 @@ def main():
     stream = tweepy.Stream(auth=api.auth, listener=listener)
 
     # 会話の収集
-    stream.userstream()
+    stream.sample(languages=['ja'])
 
 
 if __name__ == '__main__':
