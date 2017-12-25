@@ -153,8 +153,8 @@ def main():
             # DialogueListener.on_status 内のオリジナルツイートを取得する処理が
             # タイムアウトした場合に発生することを確認した
         except Exception as ex:
-            logging.warning('[main] Exception raised. msg: %s' % str(ex))
-            logging.warning('[main] time.sleep(120)')
+            logging.error('[main] Exception raised. msg: %s' % str(ex))
+            logging.error('[main] time.sleep(120)')
             time.sleep(120)
 
 
