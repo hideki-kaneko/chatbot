@@ -41,12 +41,17 @@ class DialogueListener(tweepy.StreamListener):
             try:
                 origin_tweet = self.twitter_api.get_status(
                     tweet['in_reply_to_status_id'])._json
-            except Exception as ex:
+            except tweepy.RateLimitError:
+                logging.warning('[on_status] Rate limit exceeded.')
+                logging.warning('[on_status] time.sleep(15 * 60)')
+                time.sleep(15 * 60)
+                return
+            except tweepy.TweepError as ex:
                 if ex.api_code == 179:
                     # 鍵アカウントへのリプライの場合
-                    pass
+                    return
                 else:
-                    logging.warning('[on_status] Exception raised. msg: %s'
+                    logging.warning('[on_status] TweepyError raised. msg: %s'
                                     % ex.reason)
                 # プログラムの中止を避けるため
                 return
